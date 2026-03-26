@@ -6,26 +6,18 @@ interface AgentPerformanceTableProps {
 
 export function AgentPerformanceTable({ orders }: AgentPerformanceTableProps) {
   const agentData = orders.reduce((acc, order) => {
-    const agent = order.agent || 'Unassigned';
+    const agent = (order as any).assignedTo || order.agent || 'Unassigned';
     const status = order.status || 'Unknown';
 
     if (!acc[agent]) {
-      acc[agent] = {
-        total: 0,
-        completed: 0,
-        cancelled: 0,
-        bbPending: 0,
-        bbInProgress: 0,
-        other: 0,
-      };
+      acc[agent] = { total: 0, completed: 0, cancelled: 0, bbPending: 0, bbInProgress: 0, other: 0 };
     }
 
     acc[agent].total++;
-
     if (status === 'Completed') acc[agent].completed++;
     else if (status === 'Cancelled') acc[agent].cancelled++;
-    else if (status === 'BB-Pending') acc[agent].bbPending++;
-    else if (status === 'BB-In Progress') acc[agent].bbInProgress++;
+    else if (status === 'BB-Pending' || status === 'Pending') acc[agent].bbPending++;
+    else if (status === 'BB-In Progress' || status === 'In Progress') acc[agent].bbInProgress++;
     else acc[agent].other++;
 
     return acc;
@@ -40,9 +32,9 @@ export function AgentPerformanceTable({ orders }: AgentPerformanceTableProps) {
     .sort((a, b) => b.total - a.total);
 
   const getCompletionColor = (rate: string) => {
-    const rateNum = parseFloat(rate);
-    if (rateNum >= 50) return 'text-green-600 bg-green-50';
-    if (rateNum >= 25) return 'text-yellow-600 bg-yellow-50';
+    const r = parseFloat(rate);
+    if (r >= 50) return 'text-green-700 bg-green-50';
+    if (r >= 25) return 'text-yellow-700 bg-yellow-50';
     return 'text-red-600 bg-red-50';
   };
 
@@ -65,7 +57,10 @@ export function AgentPerformanceTable({ orders }: AgentPerformanceTableProps) {
           </thead>
           <tbody>
             {agentRows.map((row, idx) => (
-              <tr key={row.agent} className={`border-t border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+              <tr
+                key={row.agent}
+                className={`border-t border-gray-200 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+              >
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.agent}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{row.total}</td>
                 <td className="px-4 py-3 text-sm text-gray-700">{row.completed}</td>
