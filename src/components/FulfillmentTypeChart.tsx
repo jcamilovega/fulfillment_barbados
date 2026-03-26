@@ -1,10 +1,20 @@
 import { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Order } from '../types/orders';
 
 interface FulfillmentTypeChartProps {
   orders: Order[];
 }
+
+const PRODUCT_COLORS: Record<string, string> = {
+  'Port In':     '#534AB7',
+  'Fixed Only':  '#1D9E75',
+  'New Line':    '#378ADD',
+  'Pre to Post': '#EF9F27',
+  'Mobile':      '#D85A30',
+  'Bundle':      '#D4537E',
+  'Unknown':     '#888780',
+};
 
 export function FulfillmentTypeChart({ orders }: FulfillmentTypeChartProps) {
   const [selectedSource, setSelectedSource] = useState<string>('All');
@@ -15,15 +25,23 @@ export function FulfillmentTypeChart({ orders }: FulfillmentTypeChartProps) {
     ? orders
     : orders.filter(o => o.source === selectedSource);
 
-  const fulfillmentTypeCounts = filteredOrders.reduce((acc, order) => {
-    const fulfillmentType = (order as any).fulfillmentType || 'Unknown';
-    acc[fulfillmentType] = (acc[fulfillmentType] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const productTypes = Array.from(
+    new Set(filteredOrders.map(o => (o as any).productType || 'Unknown'))
+  );
 
-  const chartData = Object.entries(fulfillmentTypeCounts)
-    .map(([fulfillmentType, count]) => ({ fulfillmentType, count }))
-    .sort((a, b) => b.count - a.count);
+  const grouped = filteredOrders.reduce((acc, order) => {
+    const ft = (order as any).fulfillmentType || 'Unknown';
+    const pt = (order as any).productType || 'Unknown';
+    if (!acc[ft]) acc[ft] = { fulfillmentType: ft };
+    acc[ft][pt] = (acc[ft][pt] || 0) + 1;
+    return acc;
+  }, {} as Record<string, Record<string, any>>);
+
+  const chartData = Object.values(grouped).sort(
+    (a, b) =>
+      productTypes.reduce((s, pt) => s + (b[pt] || 0), 0) -
+      productTypes.reduce((s, pt) => s + (a[pt] || 0), 0)
+  );
 
   return (
     <div className="border-b border-gray-200 pb-6 mb-6">
@@ -46,7 +64,15 @@ export function FulfillmentTypeChart({ orders }: FulfillmentTypeChartProps) {
             <XAxis type="number" tick={{ fontSize: 11 }} />
             <YAxis dataKey="fulfillmentType" type="category" width={120} tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Bar dataKey="count" fill="#8b5cf6" />
+            <Legend />
+            {productTypes.map(pt => (
+              <Bar
+                key={pt}
+                dataKey={pt}
+                stackId="a"
+                fill={PRODUCT_COLORS[pt] || '#B4B2A9'}
+              />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </div>

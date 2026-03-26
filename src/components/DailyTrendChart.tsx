@@ -7,25 +7,19 @@ interface DailyTrendChartProps {
 
 export function DailyTrendChart({ orders }: DailyTrendChartProps) {
   const dailyData = orders.reduce((acc, order) => {
-    const createdDate = new Date(order.createdAt).toISOString().split('T')[0];
-    if (!acc[createdDate]) {
-      acc[createdDate] = { date: createdDate, Created: 0, Completed: 0 };
+    const date = new Date(order.createdAt).toISOString().split('T')[0];
+    if (!acc[date]) {
+      acc[date] = { date, Completed: 0, Cancelled: 0, Pending: 0, Other: 0 };
     }
-    acc[createdDate].Created++;
-
-    if (order.status === 'Completed' && order.lastUpdatedAt) {
-      const completedDate = new Date(order.lastUpdatedAt).toISOString().split('T')[0];
-      if (!acc[completedDate]) {
-        acc[completedDate] = { date: completedDate, Created: 0, Completed: 0 };
-      }
-      acc[completedDate].Completed++;
-    }
-
+    const s = order.status;
+    if (s === 'Completed') acc[date].Completed++;
+    else if (s === 'Cancelled') acc[date].Cancelled++;
+    else if (s === 'BB-Pending' || s === 'Pending') acc[date].Pending++;
+    else acc[date].Other++;
     return acc;
-  }, {} as Record<string, { date: string; Created: number; Completed: number }>);
+  }, {} as Record<string, { date: string; Completed: number; Cancelled: number; Pending: number; Other: number }>);
 
-  const chartData = Object.values(dailyData)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const chartData = Object.values(dailyData).sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -37,8 +31,10 @@ export function DailyTrendChart({ orders }: DailyTrendChartProps) {
           <YAxis tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="Created" fill="#3b82f6" />
-          <Bar dataKey="Completed" fill="#10b981" />
+          <Bar dataKey="Completed" stackId="a" fill="#3B6D11" />
+          <Bar dataKey="Cancelled" stackId="a" fill="#E24B4A" />
+          <Bar dataKey="Pending"   stackId="a" fill="#EF9F27" />
+          <Bar dataKey="Other"     stackId="a" fill="#888780" />
         </BarChart>
       </ResponsiveContainer>
     </div>
